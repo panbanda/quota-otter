@@ -1,0 +1,36 @@
+name: Update Quota Otter cask
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '19 */6 * * *'
+permissions:
+  contents: write
+concurrency:
+  group: quota-otter-cask
+  cancel-in-progress: false
+jobs:
+  update:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+      - name: Generate cask from a complete published release
+        run: node scripts/update-quota-otter.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Check cask syntax
+        run: |
+          if test -f Casks/quota-otter.rb; then ruby -c Casks/quota-otter.rb; fi
+      - name: Commit verified cask update
+        run: |
+          if test -f Casks/quota-otter.rb; then
+            git add Casks/quota-otter.rb
+            if ! git diff --cached --quiet; then
+              git config user.name 'github-actions[bot]'
+              git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+              git commit -m 'chore(cask): update Quota Otter'
+              git push
+            fi
+          fi
