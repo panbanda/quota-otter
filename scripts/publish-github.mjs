@@ -21,7 +21,7 @@ const publishPaths=[
   ...['build','check-version','claude-statusline','collect-release','finalize-release','publish-github','serve'].map(name=>`scripts/${name}.mjs`),
   ...['Cargo.lock','Cargo.toml','build.rs','capabilities/main.json','src/codex.rs','src/main.rs','tauri.conf.json'].map(path=>`src-tauri/${path}`),
   ...['128x128.png','128x128@2x.png','32x32.png','app.png','icon.icns','icon.ico'].map(path=>`src-tauri/icons/${path}`),
-  ...['app.js','core.js','index.html','otter.png','style.css'].map(path=>`src/${path}`),
+  ...['app.js','core.js','index.html','otter.png','otter.svg','theme.js','style.css'].map(path=>`src/${path}`),
   ...['bridge.test.mjs','core.test.mjs','release.test.mjs','native/Cargo.lock','native/Cargo.toml'].map(path=>`tests/${path}`),
 ];
 const staged=capture('git',['diff','--cached','--name-only','-z']);
