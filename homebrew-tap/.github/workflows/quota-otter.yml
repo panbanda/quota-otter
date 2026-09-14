@@ -1,5 +1,8 @@
 name: Update Quota Otter cask
 on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/quota-otter.yml', 'scripts/update-quota-otter.mjs', 'Casks/quota-otter.rb']
   workflow_dispatch:
   schedule:
     - cron: '19 */6 * * *'
@@ -10,7 +13,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   update:
-    runs-on: ubuntu-24.04
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
@@ -23,6 +26,29 @@ jobs:
       - name: Check cask syntax
         run: |
           if test -f Casks/quota-otter.rb; then ruby -c Casks/quota-otter.rb; fi
+      - name: Install and launch the published cask
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: '1'
+        run: |
+          if ! test -f Casks/quota-otter.rb; then exit 0; fi
+          brew tap-new panbanda/quota-otter-ci
+          TAP_DIR="$(brew --repository panbanda/quota-otter-ci)"
+          mkdir -p "$TAP_DIR/Casks"
+          cp Casks/quota-otter.rb "$TAP_DIR/Casks/"
+          # CI cannot approve the first-launch dialog for an unnotarized app.
+          brew install --cask --no-quarantine panbanda/quota-otter-ci/quota-otter
+          test -x '/Applications/Quota Otter.app/Contents/MacOS/quota-otter'
+          codex --version
+          node --version
+          lipo -verify_arch arm64 x86_64 '/Applications/Quota Otter.app/Contents/MacOS/quota-otter'
+          EXPECTED=$(ruby -ne 'puts $1 if /^  version "([^"]+)"/.match($_)' Casks/quota-otter.rb)
+          ACTUAL=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' '/Applications/Quota Otter.app/Contents/Info.plist')
+          test "$EXPECTED" = "$ACTUAL"
+          open '/Applications/Quota Otter.app'
+          sleep 8
+          pgrep -f '^/Applications/Quota Otter.app/Contents/MacOS/quota-otter'
+          brew uninstall --cask panbanda/quota-otter-ci/quota-otter
+          test ! -e '/Applications/Quota Otter.app'
       - name: Commit verified cask update
         run: |
           if test -f Casks/quota-otter.rb; then

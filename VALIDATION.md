@@ -8,7 +8,8 @@
 - `cargo test --manifest-path tests/native/Cargo.toml --locked`: **4 tests** compiling the actual Rust Codex bridge independently of the desktop system libraries. Covers profile path validation, OAuth destination restrictions, JSON-RPC response correlation with intervening notifications, error redaction, and child-process EOF handling.
 - Automated Chromium UI exercise: account creation, manual usage editing, snapshot persistence after reload, membership in two groups, group filtering, demo isolation, and narrow-window rendering. No browser JavaScript errors were observed. Screenshot inspected visually.
 - Homebrew cask validation and checksum pipeline tests use synthetic installer bytes; no actual release artifact is claimed.
-- Release version consistency checked for `v0.1.0`.
+- Release version consistency checked for `quota-otter-v0.1.0`, including npm/Cargo lockfiles and UI metadata.
+- Release Please's actual TOML/JSON/generic updaters were exercised against all extra version files; only the application's Cargo.lock version changed.
 
 ## Not completed
 

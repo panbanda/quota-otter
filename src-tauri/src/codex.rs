@@ -88,7 +88,7 @@ impl Server {
             pending_login: None,
             login_failed: false,
         };
-        server.call("initialize", json!({ "clientInfo": { "name": "quota_otter", "title": "Quota Otter", "version": "0.1.0" } })).await?;
+        server.call("initialize", json!({ "clientInfo": { "name": "quota_otter", "title": "Quota Otter", "version": env!("CARGO_PKG_VERSION") } })).await?;
         server
             .send(json!({"method":"initialized","params":{}}))
             .await?;
