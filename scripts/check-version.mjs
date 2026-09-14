@@ -5,5 +5,7 @@ const expected=tag.slice(1);
 const pkg=JSON.parse(await readFile('package.json','utf8'));
 const tauri=JSON.parse(await readFile('src-tauri/tauri.conf.json','utf8'));
 const cargo=await readFile('src-tauri/Cargo.toml','utf8');
-if(pkg.version!==expected||tauri.version!==expected||!cargo.includes(`version = "${expected}"`))throw Error('Package, Cargo and Tauri versions must match the release tag.');
+const packageSection=cargo.split(/^\s*\[/m).find(section=>section.startsWith('package]'));
+const cargoVersion=packageSection?.match(/^\s*version\s*=\s*["']([^"']+)["']\s*(?:#.*)?$/m)?.[1];
+if(pkg.version!==expected||tauri.version!==expected||cargoVersion!==expected)throw Error('Package, Cargo and Tauri versions must match the release tag.');
 console.log(`Versions agree: ${expected}`);

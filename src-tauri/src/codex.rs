@@ -112,14 +112,20 @@ impl Server {
         self.next_id += 1;
         let id = self.next_id;
         timeout(Duration::from_secs(35), async {
+            let mut early_completions = HashMap::new();
             self.send(json!({"id":id,"method":method,"params":params})).await?;
             while let Some(line) = self.lines.next_line().await.map_err(|_| "Could not read Codex response")? {
                 let message: Value = serde_json::from_str(&line).map_err(|_| "Codex returned an invalid response")?;
                 if message.get("method").and_then(Value::as_str)==Some("account/login/completed") {
                     let params=&message["params"];
-                    if params["loginId"].as_str()==self.pending_login.as_deref() {
-                        self.pending_login=None;
-                        self.login_failed=params["success"].as_bool()!=Some(true);
+                    if let Some(login_id) = params["loginId"].as_str() {
+                        let failed = params["success"].as_bool()!=Some(true);
+                        if Some(login_id)==self.pending_login.as_deref() {
+                            self.pending_login=None;
+                            self.login_failed=failed;
+                        } else if method=="account/login/start" {
+                            early_completions.insert(login_id.to_owned(), failed);
+                        }
                     }
                 }
                 if message.get("id").and_then(Value::as_u64) != Some(id) { continue; }
@@ -128,7 +134,14 @@ impl Server {
                     return Err("Codex could not complete this request. Check your sign-in, OS credential store, connection, and Codex version.".into());
                 }
                 let result=message.get("result").cloned().ok_or_else(|| "Codex response is missing its result".to_string())?;
-                if method=="account/login/start" {self.pending_login=result["loginId"].as_str().map(str::to_owned);self.login_failed=false;}
+                if method=="account/login/start" {
+                    self.pending_login=result["loginId"].as_str().map(str::to_owned);
+                    self.login_failed=false;
+                    if let Some(failed)=self.pending_login.as_ref().and_then(|id| early_completions.remove(id)) {
+                        self.pending_login=None;
+                        self.login_failed=failed;
+                    }
+                }
                 if method=="account/login/cancel" || method=="account/logout" {self.pending_login=None;self.login_failed=false;}
                 return Ok(result);
             }
@@ -249,6 +262,26 @@ mod tests {
             let mut server=fake("import sys,json\nr=json.loads(sys.stdin.readline())\nprint(json.dumps({'method':'account/updated','params':{}}))\nprint(json.dumps({'id':999,'result':{}}))\nprint(json.dumps({'id':r['id'],'result':{'availableCount':2}}))");
             let result=server.call("account/rateLimits/read",json!({})).await.unwrap();
             assert_eq!(result["availableCount"],2);
+        });
+    }
+    #[test]
+    fn login_completion_handles_both_message_orders() {
+        tokio::runtime::Runtime::new().unwrap().block_on(async {
+            for early in [true, false] {
+                for success in [true, false] {
+                    let script = format!(
+                        "import sys,json\nr=json.loads(sys.stdin.readline())\nnotification={{'method':'account/login/completed','params':{{'loginId':'expected','success':{success}}}}}\nresponse={{'id':r['id'],'result':{{'loginId':'expected'}}}}\nprint(json.dumps({{'method':'account/login/completed','params':{{'loginId':'unrelated','success':True}}}}))\nif {early}:\n print(json.dumps(notification))\nprint(json.dumps(response))\nr=json.loads(sys.stdin.readline())\nif not {early}:\n print(json.dumps(notification))\nprint(json.dumps({{'id':r['id'],'result':{{}}}}))",
+                        success = if success { "True" } else { "False" },
+                        early = if early { "True" } else { "False" },
+                    );
+                    let mut server = fake(&script);
+                    server.call("account/login/start", json!({})).await.unwrap();
+                    assert_eq!(server.pending_login.is_none(), early);
+                    server.call("account/read", json!({})).await.unwrap();
+                    assert!(server.pending_login.is_none());
+                    assert_eq!(server.login_failed, !success);
+                }
+            }
         });
     }
     #[test]

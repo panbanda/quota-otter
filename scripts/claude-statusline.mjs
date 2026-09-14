@@ -18,7 +18,7 @@ try{
   }
   // Statusline rerenders are not quota fetches. Retain the original timestamp
   // until either the usage changes or a new API response changes the cost total.
-  const marker=createHash('sha256').update(JSON.stringify([data.session_id,data.cost?.total_api_duration_ms,rate_limits])).digest('hex');
+  const marker=createHash('sha256').update(JSON.stringify([data.cost?.total_api_duration_ms,rate_limits])).digest('hex');
   let previous;try{previous=JSON.parse(await readFile(output,'utf8'));}catch{}
   const observedAt=previous?.marker===marker?previous.observedAt:Date.now();
   await mkdir(dirname(output),{recursive:true,mode:0o700});

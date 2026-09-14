@@ -1,10 +1,25 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {mkdtemp,readFile,rm} from 'node:fs/promises';
+import {mkdtemp,readFile,rm,mkdir,writeFile} from 'node:fs/promises';
+import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {cask,compareVersions,update} from '../homebrew-tap/scripts/update-quota-otter.mjs';
+test('release version check compares Cargo package version, not dependency versions',async()=>{
+  const dir=await mkdtemp(join(tmpdir(),'quota-otter-version-'));
+  try{
+    await mkdir(join(dir,'src-tauri'));
+    await writeFile(join(dir,'package.json'),JSON.stringify({version:'0.1.0'}));
+    await writeFile(join(dir,'src-tauri/tauri.conf.json'),JSON.stringify({version:'0.1.0'}));
+    const run=()=>spawnSync(process.execPath,[fileURLToPath(new URL('../scripts/check-version.mjs',import.meta.url))],{cwd:dir,env:{...process.env,RELEASE_TAG:'v0.1.0'},encoding:'utf8'});
+    await writeFile(join(dir,'src-tauri/Cargo.toml'),'[package]\nname = "test"\nversion = "0.2.0"\n[dependencies.example]\nversion = "0.1.0"\n');
+    const mismatch=run();assert.notEqual(mismatch.status,0);assert.match(mismatch.stderr,/versions must match/);
+    await writeFile(join(dir,'src-tauri/Cargo.toml'),'[package]\nname = "test"\nversion = "0.1.0"\n[dependencies.example]\nversion = "0.2.0"\n');
+    const match=run();assert.equal(match.status,0,match.stderr);
+  }finally{await rm(dir,{recursive:true,force:true});}
+});
 test('cask generator rejects injected versions/checksums and compares versions numerically',()=>{
   assert.throws(()=>cask('0.1.0";evil','a'.repeat(64)));assert.throws(()=>cask('0.1.0','bad'));assert.equal(compareVersions('0.10.0','0.2.0'),1);
 });
