@@ -1,18 +1,25 @@
 name: Update Quota Otter cask
 on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/quota-otter.yml', 'scripts/update-quota-otter.mjs', 'Casks/quota-otter.rb']
   workflow_dispatch:
   schedule:
     - cron: '19 */6 * * *'
 permissions:
-  contents: write
+  contents: read
 concurrency:
   group: quota-otter-cask
   cancel-in-progress: false
 jobs:
-  update:
-    runs-on: ubuntu-24.04
+  verify:
+    runs-on: macos-15
+    outputs:
+      has_cask: ${{ steps.cask.outputs.present }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 24
@@ -23,7 +30,66 @@ jobs:
       - name: Check cask syntax
         run: |
           if test -f Casks/quota-otter.rb; then ruby -c Casks/quota-otter.rb; fi
+      - name: Install and launch the published cask
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: '1'
+        run: |
+          if ! test -f Casks/quota-otter.rb; then exit 0; fi
+          brew tap-new panbanda/quota-otter-ci
+          TAP_DIR="$(brew --repository panbanda/quota-otter-ci)"
+          mkdir -p "$TAP_DIR/Casks"
+          cp Casks/quota-otter.rb "$TAP_DIR/Casks/"
+          # CI cannot approve the first-launch dialog for an unnotarized app.
+          brew install --cask --no-quarantine panbanda/quota-otter-ci/quota-otter
+          test -x '/Applications/Quota Otter.app/Contents/MacOS/quota-otter'
+          codex --version
+          node --version
+          lipo -verify_arch arm64 x86_64 '/Applications/Quota Otter.app/Contents/MacOS/quota-otter'
+          EXPECTED=$(ruby -ne 'puts $1 if /^  version "([^"]+)"/.match($_)' Casks/quota-otter.rb)
+          ACTUAL=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' '/Applications/Quota Otter.app/Contents/Info.plist')
+          test "$EXPECTED" = "$ACTUAL"
+          open '/Applications/Quota Otter.app'
+          sleep 8
+          pgrep -f '^/Applications/Quota Otter.app/Contents/MacOS/quota-otter'
+          brew uninstall --cask panbanda/quota-otter-ci/quota-otter
+          test ! -e '/Applications/Quota Otter.app'
+      - name: Identify the tested cask
+        id: cask
+        run: |
+          if test -f Casks/quota-otter.rb; then echo 'present=true' >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/upload-artifact@v4
+        if: ${{ steps.cask.outputs.present == 'true' }}
+        with:
+          name: tested-quota-otter-cask
+          path: Casks/quota-otter.rb
+          retention-days: 7
+  publish:
+    needs: verify
+    if: ${{ needs.verify.outputs.has_cask == 'true' }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          name: tested-quota-otter-cask
+          path: verified
+      - name: Independently regenerate and compare the tested cask
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node scripts/update-quota-otter.mjs
+          cmp Casks/quota-otter.rb verified/quota-otter.rb
+          ruby -c Casks/quota-otter.rb
       - name: Commit verified cask update
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if test -f Casks/quota-otter.rb; then
             git add Casks/quota-otter.rb
@@ -31,6 +97,6 @@ jobs:
               git config user.name 'github-actions[bot]'
               git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
               git commit -m 'chore(cask): update Quota Otter'
-              git push
+              git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push
             fi
           fi

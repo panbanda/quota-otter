@@ -8,14 +8,18 @@ export function cask(version,sha){
   version "${version}"
   sha256 "${sha}"
 
-  url "https://github.com/panbanda/quota-otter/releases/download/v#{version}/QuotaOtter_#{version}_universal-apple-darwin.dmg"
+  url "https://github.com/panbanda/quota-otter/releases/download/quota-otter-v#{version}/QuotaOtter_#{version}_universal-apple-darwin.dmg"
   name "Quota Otter"
   desc "AI account usage, reset windows, and project groups in your menu bar"
   homepage "https://github.com/panbanda/quota-otter"
 
   depends_on macos: ">= :monterey"
+  depends_on cask: "codex"
+  depends_on formula: "node"
 
   app "Quota Otter.app"
+
+  uninstall quit: "app.quotaotter.desktop"
 
   caveats <<~EOS
     OpenAI connections require the official native Codex CLI on PATH.
@@ -33,8 +37,8 @@ export async function update({fetcher=fetch,token=process.env.GH_TOKEN}={}){
   if(res.status===404){console.log('No published Quota Otter release yet; cask unchanged.');return false;}
   if(!res.ok)throw Error(`Release lookup failed: HTTP ${res.status}`);
   const release=await res.json();
-  if(release.draft||release.prerelease||!/^v\d+\.\d+\.\d+$/.test(release.tag_name))throw Error('Expected a stable semantic-version release');
-  const version=release.tag_name.slice(1),file=`QuotaOtter_${version}_universal-apple-darwin.dmg`;
+  if(release.draft||release.prerelease||!/^quota-otter-v\d+\.\d+\.\d+$/.test(release.tag_name))throw Error('Expected a stable semantic-version release');
+  const version=release.tag_name.slice('quota-otter-v'.length),file=`QuotaOtter_${version}_universal-apple-darwin.dmg`;
   const required=[file,`QuotaOtter_${version}_x86_64-pc-windows-msvc.exe`,`QuotaOtter_${version}_x86_64-pc-windows-msvc.msi`,`QuotaOtter_${version}_x86_64-unknown-linux-gnu.deb`,`QuotaOtter_${version}_x86_64-unknown-linux-gnu.AppImage`,'SHA256SUMS'];
   if(required.some(name=>!release.assets?.some(a=>a.name===name))){console.log('Release upload is incomplete; cask unchanged.');return false;}
   let previous;try{previous=await readFile('Casks/quota-otter.rb','utf8');}catch(e){if(e.code!=='ENOENT')throw e;}

@@ -14,14 +14,14 @@ const branch=capture('git',['branch','--show-current']).stdout.trim();if(branch!
 const remote=capture('git',['remote','get-url','origin']);
 if(remote.status===0&&!/^(https:\/\/github\.com\/|git@github\.com:)panbanda\/quota-otter(?:\.git)?$/.test(remote.stdout.trim()))throw Error('Origin is not panbanda/quota-otter; refusing to replace it.');
 const publishPaths=[
-  '.github/workflows/ci.yml','.github/workflows/release.yml','.gitignore',
+  '.github/workflows/ci.yml','.github/workflows/release.yml','.gitignore','release-please-config.json','.release-please-manifest.json',
   'LICENSE','PUBLISHING.md','README.md','RELEASE_NOTES.md','VALIDATION.md','docs/preview.png',
   'homebrew-tap/.github/workflows/quota-otter.yml','homebrew-tap/scripts/update-quota-otter.mjs',
   'package.json','package-lock.json',
   ...['build','check-version','claude-statusline','collect-release','finalize-release','publish-github','serve'].map(name=>`scripts/${name}.mjs`),
   ...['Cargo.lock','Cargo.toml','build.rs','capabilities/main.json','src/codex.rs','src/main.rs','tauri.conf.json'].map(path=>`src-tauri/${path}`),
   ...['128x128.png','128x128@2x.png','32x32.png','app.png','icon.icns','icon.ico'].map(path=>`src-tauri/icons/${path}`),
-  ...['app.js','core.js','index.html','otter.png','otter.svg','theme.js','style.css'].map(path=>`src/${path}`),
+  ...['app.js','core.js','index.html','otter.png','otter.svg','theme.js','style.css','version.js'].map(path=>`src/${path}`),
   ...['bridge.test.mjs','core.test.mjs','release.test.mjs','native/Cargo.lock','native/Cargo.toml'].map(path=>`tests/${path}`),
 ];
 const staged=capture('git',['diff','--cached','--name-only','-z']);

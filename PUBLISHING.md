@@ -1,44 +1,24 @@
-# GitHub and Homebrew publishing
+# Versioning and distribution
 
-Target app repository: **panbanda/quota-otter** (public). Existing tap: **panbanda/homebrew-brews**. The install command will be:
+Quota Otter follows Higgs and Omen's Release Please workflow. Conventional commits on `main` maintain a release PR with a changelog and semantic version bump. Merging that PR creates a tag such as `quota-otter-v0.1.0` and starts the installer builds in the same workflow.
+
+Release Please updates package.json, package-lock.json, Cargo.toml, the application's Cargo.lock entry, tauri.conf.json, and the displayed UI version together. CI checks consistency, and Codex client identification uses the compiled Cargo package version. Before 1.0, feature commits increment the patch version and breaking changes increment the minor version, matching Higgs's policy.
+
+The release job explicitly dispatches CI for generated release PRs because GitHub's built-in Actions token does not automatically trigger pull-request workflows. Merge a release PR only after those checks pass.
+
+Windows x64, Linux x64 and universal Intel/Apple Silicon macOS installers are built and tested from the release tag. Release Please creates a draft and explicitly creates the tag for checkout. Only when all three builds succeed does CI upload the five installers and SHA256SUMS and publish the draft. The tap also refuses incomplete releases.
+
+The updater in `panbanda/homebrew-brews` checks every six hours, on relevant main-branch changes, and on manual runs. It verifies the downloaded DMG against SHA256SUMS and performs a macOS cask install, architecture/version check, process-launch smoke check, and uninstall before committing the cask. It never downgrades or silently replaces a version. Re-run the updater after a release for immediate publication.
+
+Install a published version with:
 
 ```sh
 brew tap panbanda/brews
 brew install --cask quota-otter
 ```
 
-It will work only after a successful release and tap update. It is not live yet.
+Upgrade with `brew upgrade --cask quota-otter`. The cask includes the native Codex CLI and Node.js dependencies. Claude Code itself must be installed and authenticated separately for Claude usage feeds.
 
-## Bootstrap
+The initial application is unsigned and not notarized, like the initial Higgs desktop distribution. macOS may require explicit first-launch approval. The CI launch smoke check disables quarantine only for its ephemeral test installation; the cask does not remove quarantine from user installations. Live provider sign-in still requires verification with real accounts.
 
-On a machine with Git, GitHub CLI (`gh`), and Node.js installed, authenticate `gh` with an account that can create `panbanda/quota-otter` and write workflows to both repositories. Configure your normal Git commit identity. From this extracted directory:
-
-```sh
-gh auth login
-node scripts/publish-github.mjs
-```
-
-The script creates/updates the app repository, pushes a `quota-otter-cask-ci` branch to the tap, and opens a tap PR. It does not create a release tag or bypass failing CI. If the app repo already exists, it must have a history compatible with this source; the script never force pushes.
-
-Alternatively, create the empty app repository in GitHub, enable the connected GitHub app for it, and grant repository contents/workflows write access to both repos. The assistant can then publish the prepared code through that connection. An initial README commit makes it possible to use the connection's commit-based tools.
-
-## Validate and release
-
-1. Let the app repository's **CI** workflow pass on Linux, Windows, and macOS. Check actual OAuth and tray operation on the target systems before promoting a release as production-ready.
-2. Merge the tap PR. It adds only the updater workflow/script, without a placeholder cask. The updater checks for releases every six hours and supports **Run workflow** for an immediate update. If the repository has been inactive for an extended period, GitHub can disable scheduled workflows; re-enable/run it when needed.
-3. Keep `package.json`, `package-lock.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, and `src-tauri/tauri.conf.json` versions aligned. For the first release they are `0.1.0`.
-4. Push the release tag:
-
-```sh
-git tag v0.1.0
-git push origin v0.1.0
-```
-
-5. **Desktop release** tests and builds all platforms. Only after every matrix job succeeds does it publish a GitHub release containing the five installers plus `SHA256SUMS`. No partial-platform success is published by this workflow. If publication is interrupted, delete/repair the incomplete release through GitHub and rerun the failed job; do not silently replace an already-distributed release.
-6. Run **Update Quota Otter cask** in the tap, or wait for its next scheduled run. The script validates the stable version, requires the complete release asset set, downloads the DMG, hashes its bytes, compares the published SHA-256, and creates `Casks/quota-otter.rb`. It does not downgrade or replace the same version.
-
-The tap uses its own `GITHUB_TOKEN`, with contents write permission; **no cross-repository personal token is required**. GitHub Actions must be enabled. If branch protection forbids bot pushes, adapt the updater's commit step to open a pull request and honor the required checks; do not disable protection.
-
-The updater sources in `homebrew-tap/` are the exact files to install into the tap. Later edits to those copies in the app repo do not automatically change the tap; submit a corresponding tap PR.
-
-Initial app bundles are unsigned. For signed releases, add your Apple/Windows signing configuration and secrets using Tauri's documented signing flow, then update the cask caveat. Credentials are never shipped with this source.
+The tap uses its own repository token; no cross-repository personal token is needed. If repository policy blocks Release Please from opening PRs or the tap bot from pushing, resolve that policy through the normal approval process rather than disabling protection.

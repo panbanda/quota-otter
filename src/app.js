@@ -1,4 +1,5 @@
 import { empty, uid, normalizeLimits, status, summarize, countdown, exportConfig, validateConfig, demoState, normalizeClaude, mergeConfig, restoreLocal } from './core.js';
+import { APP_VERSION } from './version.js';
 const native = Boolean(window.__TAURI__);
 const invoke = (cmd, args={}) => native ? window.__TAURI__.core.invoke(cmd,args) : Promise.reject(Error('Open the desktop app to connect accounts. This browser preview supports groups and manual tracking.'));
 const $ = s => document.querySelector(s);
@@ -58,6 +59,7 @@ function render(){
   $('#theme').onchange=e=>window.quotaTheme.set(e.target.value);
   const note=$('.note');const disclosure=document.createElement('details');disclosure.className='coverage';disclosure.innerHTML='<summary>About your quota readings <span>↗</span></summary>';note.replaceWith(disclosure);disclosure.append(note);
   $('.footer').before(disclosure);
+  $('.footer > span:last-child').innerHTML=$('.footer > span:last-child').innerHTML.replace('v0.1 ·',`v${esc(APP_VERSION)} ·`);
   $('.sidebar-bottom').insertAdjacentHTML('beforeend','<br><button class="quiet linklike" data-action="display">Status bar & tray</button>');
   if(display.bar)$('#app').insertAdjacentHTML('beforeend',statusBar());
   $('.shell').style.paddingBottom=display.bar?'42px':'0';
