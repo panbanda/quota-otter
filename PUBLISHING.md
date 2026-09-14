@@ -6,7 +6,7 @@ Release Please updates package.json, package-lock.json, Cargo.toml, the applicat
 
 The release job explicitly dispatches CI for generated release PRs because GitHub's built-in Actions token does not automatically trigger pull-request workflows. Merge a release PR only after those checks pass.
 
-Windows x64, Linux x64 and universal Intel/Apple Silicon macOS installers are built and tested from the release tag. Only when all three succeed does CI upload the five installers and SHA256SUMS to the Release Please release. Release metadata may exist before its artifacts finish; the tap refuses incomplete releases.
+Windows x64, Linux x64 and universal Intel/Apple Silicon macOS installers are built and tested from the release tag. Release Please creates a draft and explicitly creates the tag for checkout. Only when all three builds succeed does CI upload the five installers and SHA256SUMS and publish the draft. The tap also refuses incomplete releases.
 
 The updater in `panbanda/homebrew-brews` checks every six hours, on relevant main-branch changes, and on manual runs. It verifies the downloaded DMG against SHA256SUMS and performs a macOS cask install, architecture/version check, process-launch smoke check, and uninstall before committing the cask. It never downgrades or silently replaces a version. Re-run the updater after a release for immediate publication.
 
