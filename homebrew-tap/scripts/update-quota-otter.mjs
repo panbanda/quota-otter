@@ -13,19 +13,17 @@ export function cask(version,sha){
   desc "AI account usage, reset windows, and project groups in your menu bar"
   homepage "https://github.com/panbanda/quota-otter"
 
-  depends_on macos: ">= :monterey"
+  depends_on macos: :monterey
 
   app "Quota Otter.app"
 
   uninstall quit: "app.quotaotter.desktop"
 
   caveats <<~EOS
-    Quota Otter is not signed or notarized by Apple, so macOS refuses to
-    launch a quarantined copy. Install it with:
-      brew install --cask --no-quarantine panbanda/brews/quota-otter
-    If it is already installed, clear the quarantine flag:
+    Quota Otter is not signed or notarized by Apple, so macOS quarantines
+    it on install and refuses to launch it. Clear the quarantine flag:
       xattr -dr com.apple.quarantine "/Applications/Quota Otter.app"
-    Both bypass Gatekeeper's checks on this app. Run them only if you
+    That bypasses Gatekeeper's checks on this app. Run it only if you
     trust this release source.
 
     OpenAI connections require the official native Codex CLI on PATH:
