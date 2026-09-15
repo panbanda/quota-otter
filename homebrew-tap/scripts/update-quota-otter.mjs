@@ -25,6 +25,8 @@ export function cask(version,sha){
       brew install --cask --no-quarantine panbanda/brews/quota-otter
     If it is already installed, clear the quarantine flag:
       xattr -dr com.apple.quarantine "/Applications/Quota Otter.app"
+    Both bypass Gatekeeper's checks on this app. Run them only if you
+    trust this release source.
 
     OpenAI connections require the official native Codex CLI on PATH:
       brew install --cask codex
