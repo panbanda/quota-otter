@@ -42,8 +42,6 @@ jobs:
           # CI cannot approve the first-launch dialog for an unnotarized app.
           brew install --cask --no-quarantine panbanda/quota-otter-ci/quota-otter
           test -x '/Applications/Quota Otter.app/Contents/MacOS/quota-otter'
-          codex --version
-          node --version
           lipo -verify_arch arm64 x86_64 '/Applications/Quota Otter.app/Contents/MacOS/quota-otter'
           EXPECTED=$(ruby -ne 'puts $1 if /^  version "([^"]+)"/.match($_)' Casks/quota-otter.rb)
           ACTUAL=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' '/Applications/Quota Otter.app/Contents/Info.plist')

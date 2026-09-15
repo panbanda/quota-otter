@@ -11,7 +11,9 @@ Once the Homebrew tap updater has published the cask:
 
 ```sh
 brew tap panbanda/brews
-brew install --cask quota-otter
+brew install --cask --no-quarantine quota-otter
 ```
+
+The app is unsigned and not notarized by Apple, so `--no-quarantine` is required or macOS will refuse to launch it as "damaged." If a copy was already installed without the flag: `xattr -dr com.apple.quarantine "/Applications/Quota Otter.app"`.
 
 No automatic account switching, reset redemption, or cloud credential sync is included.

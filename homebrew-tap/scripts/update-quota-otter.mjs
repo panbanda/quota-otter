@@ -14,17 +14,22 @@ export function cask(version,sha){
   homepage "https://github.com/panbanda/quota-otter"
 
   depends_on macos: ">= :monterey"
-  depends_on cask: "codex"
-  depends_on formula: "node"
 
   app "Quota Otter.app"
 
   uninstall quit: "app.quotaotter.desktop"
 
   caveats <<~EOS
-    OpenAI connections require the official native Codex CLI on PATH.
-    Claude Code feeds require Node.js and a supported Claude Code version.
-    This early release is unsigned and is not notarized by Apple.
+    Quota Otter is not signed or notarized by Apple, so macOS refuses to
+    launch a quarantined copy. Install it with:
+      brew install --cask --no-quarantine panbanda/brews/quota-otter
+    If it is already installed, clear the quarantine flag:
+      xattr -dr com.apple.quarantine "/Applications/Quota Otter.app"
+
+    OpenAI connections require the official native Codex CLI on PATH:
+      brew install --cask codex
+    Claude Code feeds require Node.js and a supported Claude Code version:
+      brew install node
   EOS
 end
 `;
