@@ -14,13 +14,14 @@ Install a published version with:
 
 ```sh
 brew tap panbanda/brews
-brew install --cask --no-quarantine quota-otter
+brew install --cask quota-otter
+xattr -dr com.apple.quarantine "/Applications/Quota Otter.app"
 ```
 
-The app is unsigned and not notarized by Apple, so `--no-quarantine` is required or macOS will refuse to launch it as "damaged." If a copy was already installed without the flag, clear quarantine on it directly: `xattr -dr com.apple.quarantine "/Applications/Quota Otter.app"`.
+The app is unsigned and not notarized by Apple, so macOS quarantines it on install and refuses to launch it as "damaged" until that flag is cleared. Homebrew removed `--no-quarantine` in 6.0, so clearing the attribute after install is the only remedy short of signing and notarizing.
 
-Upgrade with `brew upgrade --cask --no-quarantine quota-otter`; an upgrade re-downloads the DMG, so the flag is needed again. The cask installs only the app. OpenAI feeds need the Codex CLI (`brew install --cask codex`) and Claude feeds need Node.js (`brew install node`) and Claude Code, each installed and authenticated separately.
+Upgrade with `brew upgrade --cask quota-otter`; an upgrade re-downloads the DMG, so clear the attribute again afterwards. The cask installs only the app. OpenAI feeds need the Codex CLI (`brew install --cask codex`) and Claude feeds need Node.js (`brew install node`) and Claude Code, each installed and authenticated separately.
 
-A cask cannot clear quarantine on the user's behalf, so `--no-quarantine` stays in the install command until the bundles are signed and notarized. The CI launch smoke check passes the same flag for its ephemeral test installation. Live provider sign-in still requires verification with real accounts.
+A cask cannot clear quarantine on the user's behalf, so that manual step stays until the bundles are signed and notarized. The CI launch smoke check clears the attribute the same way for its ephemeral test installation. Live provider sign-in still requires verification with real accounts.
 
 The tap uses its own repository token; no cross-repository personal token is needed. If repository policy blocks Release Please from opening PRs or the tap bot from pushing, resolve that policy through the normal approval process rather than disabling protection.

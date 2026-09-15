@@ -39,10 +39,13 @@ jobs:
           TAP_DIR="$(brew --repository panbanda/quota-otter-ci)"
           mkdir -p "$TAP_DIR/Casks"
           cp Casks/quota-otter.rb "$TAP_DIR/Casks/"
-          # CI cannot approve the first-launch dialog for an unnotarized app.
-          brew install --cask --no-quarantine panbanda/quota-otter-ci/quota-otter
+          brew install --cask panbanda/quota-otter-ci/quota-otter
+          # Homebrew removed --no-quarantine, so clear the flag the way the
+          # cask caveats tell users to. Without this an unnotarized app
+          # cannot launch and CI cannot approve the Gatekeeper dialog.
+          xattr -dr com.apple.quarantine '/Applications/Quota Otter.app'
           test -x '/Applications/Quota Otter.app/Contents/MacOS/quota-otter'
-          lipo -verify_arch arm64 x86_64 '/Applications/Quota Otter.app/Contents/MacOS/quota-otter'
+          lipo '/Applications/Quota Otter.app/Contents/MacOS/quota-otter' -verify_arch arm64 x86_64
           EXPECTED=$(ruby -ne 'puts $1 if /^  version "([^"]+)"/.match($_)' Casks/quota-otter.rb)
           ACTUAL=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' '/Applications/Quota Otter.app/Contents/Info.plist')
           test "$EXPECTED" = "$ACTUAL"
