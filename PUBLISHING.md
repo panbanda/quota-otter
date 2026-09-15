@@ -14,11 +14,13 @@ Install a published version with:
 
 ```sh
 brew tap panbanda/brews
-brew install --cask quota-otter
+brew install --cask --no-quarantine quota-otter
 ```
 
-Upgrade with `brew upgrade --cask quota-otter`. The cask includes the native Codex CLI and Node.js dependencies. Claude Code itself must be installed and authenticated separately for Claude usage feeds.
+The app is unsigned and not notarized by Apple, so `--no-quarantine` is required or macOS will refuse to launch it as "damaged." If a copy was already installed without the flag, clear quarantine on it directly: `xattr -dr com.apple.quarantine "/Applications/Quota Otter.app"`.
 
-The initial application is unsigned and not notarized, like the initial Higgs desktop distribution. macOS may require explicit first-launch approval. The CI launch smoke check disables quarantine only for its ephemeral test installation; the cask does not remove quarantine from user installations. Live provider sign-in still requires verification with real accounts.
+Upgrade with `brew upgrade --cask --no-quarantine quota-otter`; an upgrade re-downloads the DMG, so the flag is needed again. The cask installs only the app. OpenAI feeds need the Codex CLI (`brew install --cask codex`) and Claude feeds need Node.js (`brew install node`) and Claude Code, each installed and authenticated separately.
+
+A cask cannot clear quarantine on the user's behalf, so `--no-quarantine` stays in the install command until the bundles are signed and notarized. The CI launch smoke check passes the same flag for its ephemeral test installation. Live provider sign-in still requires verification with real accounts.
 
 The tap uses its own repository token; no cross-repository personal token is needed. If repository policy blocks Release Please from opening PRs or the tap bot from pushing, resolve that policy through the normal approval process rather than disabling protection.
